@@ -67,22 +67,26 @@ class _ConnectionCtx(object):
 def connection():
     return _ConnectionCtx()
 
-def with_connection():
+def with_connection(func):
     @functools.wraps(func)
     def wrapper(*args, **kw):
-        print 'call %s():' % func.__name__
-        return func(*args, **kw)
+        with connection():
+            return func(*args, **kw)
     return wrapper
-    
+
+@with_connection
 def select(sql):
     global _db_ctx
+    #print _db_ctx.transactions,_db_ctx.connection
     cursor = _db_ctx.cursor()
     cursor.execute(sql)
     data = cursor.fetchall()
     return data
 
+@with_connection
 def update(sql, *args):
     global _db_ctx
+    #print _db_ctx.transactions,_db_ctx.connection
     cursor = _db_ctx.cursor()
     cursor.execute(sql, list(args))
     _db_ctx.connection.commit()
@@ -96,7 +100,7 @@ def create_engine(user, password, database, host, port):
 
 if __name__ == '__main__':
     create_engine(user='root', password='TZTJ-VCeIoCM1CG1dWe3', database='test', host='127.0.0.1', port='3306')
-    #print select('select * from user')
+    print select('select * from user')
     with connection():
-        #print update('update user t set t.name=%s where t.id=%s','mark',2)
+        print update('update user t set t.name=%s where t.id=%s','jack',2)
         print select('select * from user')
