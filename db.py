@@ -77,7 +77,6 @@ def with_connection(func):
 @with_connection
 def select(sql):
     global _db_ctx
-    #print _db_ctx.transactions,_db_ctx.connection
     cursor = _db_ctx.cursor()
     cursor.execute(sql)
     data = cursor.fetchall()
@@ -86,13 +85,60 @@ def select(sql):
 @with_connection
 def update(sql, *args):
     global _db_ctx
-    #print _db_ctx.transactions,_db_ctx.connection
     cursor = _db_ctx.cursor()
     cursor.execute(sql, list(args))
-    _db_ctx.connection.commit()
     affectrows = cursor.rowcount
     return str(affectrows) + ' rows affect (update or insert or delete)'
-
+    
+def commit():
+    global engine
+    if engine is None:
+        print 'error: engine is not init'
+    else:
+        try:
+            global _db_ctx
+            _db_ctx.connection.commit()
+        except:
+            _db_ctx.rollback()
+            raise
+    
+    
+class _TransactionCtx(object):
+    def __enter__(self):
+        global _db_ctx
+        self.should_close_conn = False
+        if not _db_ctx.is_init():
+            _db_ctx.init()
+            self.should_close_conn = True
+        _db_ctx.transactions = _db_ctx.transactions + 1
+        return self
+    def __exit__(self, exctype, excvalue, traceback):
+        global _db_ctx
+        _db_ctx.transactions = _db_ctx.transactions - 1
+        try:
+            if _db_ctx.transactions==0:
+                if exctype is None:
+                    self.commit()
+                else:
+                    self.rollback()
+        finally:
+            if self.should_close_conn:
+                _db_ctx.cleanup()
+    def commit(self):
+        global _db_ctx
+        try:
+            _db_ctx.connection.commit()
+        except:
+            _db_ctx.connection.rollback()
+            raise
+    def rollback(self):
+        global _db_ctx
+        _db_ctx.connection.rollback()
+    
+def transaction():
+    return _TransactionCtx()
+    
+    
 def create_engine(user, password, database, host, port):
     params = {'host':host, 'port':port, 'database':database, 'user':user, 'password':password}
     global engine
@@ -100,7 +146,11 @@ def create_engine(user, password, database, host, port):
 
 if __name__ == '__main__':
     create_engine(user='root', password='TZTJ-VCeIoCM1CG1dWe3', database='test', host='127.0.0.1', port='3306')
-    print select('select * from user')
-    with connection():
-        print update('update user t set t.name=%s where t.id=%s','jack',2)
+    #print select('select * from user')
+    #with connection():
+    #    print update('update user t set t.name=%s where t.id=%s','mark',2)
+    #    commit()
+    #    print select('select * from user')
+    with transaction():
         print select('select * from user')
+        print update('update user t set t.name=%s where t.id=%s','mark',2)
