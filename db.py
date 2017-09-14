@@ -22,6 +22,8 @@ class _LasyConnection():
         self.cur.close()
         self.connect.close()
         self.connect.disconnect()
+        self.connect = None
+        self.cur = None
     def cursor(self):
         global engine
         self.connect = engine.connect()
@@ -88,19 +90,8 @@ def update(sql, *args):
     cursor = _db_ctx.cursor()
     cursor.execute(sql, list(args))
     affectrows = cursor.rowcount
+    _db_ctx.connection.commit()
     return str(affectrows) + ' rows affect (update or insert or delete)'
-    
-def commit():
-    global engine
-    if engine is None:
-        print 'error: engine is not init'
-    else:
-        try:
-            global _db_ctx
-            _db_ctx.connection.commit()
-        except:
-            _db_ctx.rollback()
-            raise
     
     
 class _TransactionCtx(object):
@@ -149,8 +140,9 @@ if __name__ == '__main__':
     #print select('select * from user')
     #with connection():
     #    print update('update user t set t.name=%s where t.id=%s','mark',2)
-    #    commit()
     #    print select('select * from user')
-    with transaction():
-        print select('select * from user')
-        print update('update user t set t.name=%s where t.id=%s','mark',2)
+    #with transaction():
+    #    print select('select * from user')
+    #    print update('update user t set t.name=%s where t.id=%s','jack',2)
+    #print select('select * from user')
+    
