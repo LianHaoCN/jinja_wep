@@ -1,6 +1,20 @@
 #!/usr/bin/python
 #-*-coding=utf-8-*-
 #db.py
+'''
+数据库模块
+用法：
+import db
+db.create_engine(user, password, database, host, port)
+支持的sql语句，可直接使用：
+    db.select('...')
+    db.update('...')
+
+with db.connection():
+    sql语句
+with db.transactions():
+    sql语句
+'''
 
 import mysql.connector, threading, functools
 
