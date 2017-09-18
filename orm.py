@@ -2,6 +2,8 @@
 
 import db
 
+#db.create_engine(user='root', password='TZTJ-VCeIoCM1CG1dWe3', database='test', host='127.0.0.1', port='3306')
+
 class Field(object):
     def __init__(self, name, column_type, primary_key):
         self.name = name
@@ -45,21 +47,16 @@ class Model(dict):
             raise AttributeError(r"'Dict' object has no attribute '%s'" % key)
     def __setattr__(self, key, value):
         self[key] = value
-
     @classmethod
     def get(cls, pk):
-        print cls.__table__, cls.__primary_key__.name
-        #d = db.select_one('select * from %s where %s=?' % (cls.__table__, cls.__primary_key__.name), pk)
-        d = db.select('select * from user where id=1')
-        print d
-        #d = db.select('select * from %s where %s=%' % (cls.__table__, cls.__primary_key__.name, pk))
+        d = db.select_one('select * from %s where %s=?' % (cls.__table__, cls.__primary_key__.name), pk)
         return cls(**d) if d else None
-#    def insert(self):
-#        params = {}
-#        for k, v in self.__mappings__.iteritems():
-#            params[v.name] = getattr(self, k)
-#        db.insert(self.__table__, **params)
-#    return self
+    def insert(self):
+        params = {}
+        for k, v in self.__mappings__.iteritems():
+            params[v.name] = getattr(self, k)
+        db.insert(self.__table__, params)
+        return self
     #def find_first()
     #def find_all()
     #def find_by()
@@ -70,12 +67,13 @@ class Model(dict):
 
 
 if __name__=='__main__':
+    db.create_engine(user='root', password='TZTJ-VCeIoCM1CG1dWe3', database='test', host='127.0.0.1', port='3306')
     class User(Model):
         __table__ = 'user'
         id = IntegerField('id', primary_key=True)
         name = StringField('name')
     user = User(id=123, name='Michael')
+    user.insert()
+    user = User.get('123')
     print user.id, user.name
-    db.create_engine(user='root', password='TZTJ-VCeIoCM1CG1dWe3', database='test', host='127.0.0.1', port='3306')
-    user = User.get('1')
     

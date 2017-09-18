@@ -90,13 +90,30 @@ def with_connection(func):
             return func(*args, **kw)
     return wrapper
 
+
 @with_connection
-def select(sql):
+def insert(tb, params):
     global _db_ctx
+    print params
+    sql = 'insert into %s (%s) values ("%s")' % (tb, ','.join([i for i in params]), '","'.join([str(params[i]) for i in params]))
+    cursor = _db_ctx.cursor()
+    cursor.execute(sql)
+    affectrows = cursor.rowcount
+    _db_ctx.connection.commit()
+    print str(affectrows) + ' rows have been insert'
+    
+@with_connection
+def select(sql, key):
+    global _db_ctx
+    sql = sql.replace('?', key)
     cursor = _db_ctx.cursor()
     cursor.execute(sql)
     data = cursor.fetchall()
     return data
+    
+@with_connection
+def select_one(sql, key):
+    return select(sql, key)[0]
 
 @with_connection
 def update(sql, *args):
@@ -105,7 +122,7 @@ def update(sql, *args):
     cursor.execute(sql, list(args))
     affectrows = cursor.rowcount
     _db_ctx.connection.commit()
-    return str(affectrows) + ' rows affect (update or insert or delete)'
+    print str(affectrows) + ' rows have been updated'
     
     
 class _TransactionCtx(object):
@@ -157,6 +174,6 @@ if __name__ == '__main__':
     #    print select('select * from user')
     #with transaction():
     #    print select('select * from user')
-    #    print update('update user t set t.name=%s where t.id=%s','jack',2)
+    #    update('update user t set t.name=%s where t.id=%s','jack',2)
     #print select('select * from user')
     
