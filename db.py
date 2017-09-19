@@ -6,9 +6,12 @@
 用法：
 import db
 db.create_engine(user, password, database, host, port)
-支持的sql语句，可直接使用：
+支持增删改查的sql语句，可直接使用：
     db.select('...')
     db.update('...')
+    db.delete('...')
+    db.insert('...')
+    db.select_one('...')
 
 with db.connection():
     sql语句
@@ -94,13 +97,24 @@ def with_connection(func):
 @with_connection
 def insert(tb, params):
     global _db_ctx
-    print params
+    #print params
     sql = 'insert into %s (%s) values ("%s")' % (tb, ','.join([i for i in params]), '","'.join([str(params[i]) for i in params]))
     cursor = _db_ctx.cursor()
     cursor.execute(sql)
     affectrows = cursor.rowcount
     _db_ctx.connection.commit()
     print str(affectrows) + ' rows have been insert'
+    
+@with_connection
+def delete(tb, pk, key):
+    global _db_ctx
+    sql = 'delete from %s where %s="%s"' % (tb, pk, key)
+    cursor = _db_ctx.cursor()
+    cursor.execute(sql)
+    affectrows = cursor.rowcount
+    _db_ctx.connection.commit()
+    print str(affectrows) + ' rows have been deleted'
+    
     
 @with_connection
 def select(sql, key):
@@ -111,15 +125,15 @@ def select(sql, key):
     data = cursor.fetchall()
     return data
     
-@with_connection
 def select_one(sql, key):
     return select(sql, key)[0]
 
 @with_connection
-def update(sql, *args):
+def update(sql, key):
     global _db_ctx
+    sql = sql.replace('?', key)
     cursor = _db_ctx.cursor()
-    cursor.execute(sql, list(args))
+    cursor.execute(sql)
     affectrows = cursor.rowcount
     _db_ctx.connection.commit()
     print str(affectrows) + ' rows have been updated'
