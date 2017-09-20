@@ -24,21 +24,31 @@ user.update()                        #改
 user.delete()                        #删
 '''
 
-import db
+import db, time
 
 class Field(object):
-    def __init__(self, name, column_type, primary_key):
-        self.name = name
-        self.column_type = column_type
+    def __init__(self, primary_key, default, updatable, ddl):
+        self.name = ''
         self.primary_key = primary_key
-        
+        self.default = default
+        self.updatable = updatable
+        self.ddl = ddl
+               
 class StringField(Field):
-    def __init__(self, name, primary_key=False):
-        super(StringField, self).__init__(name, 'varchar(100)', primary_key)
+    def __init__(self, primary_key=False, default='', updatable=True, ddl='varchar(20)'):
+        super(StringField, self).__init__(primary_key, default, updatable, ddl)
         
-class IntegerField(Field):
-    def __init__(self, name, primary_key=False):
-        super(IntegerField, self).__init__(name, 'bigint', primary_key)
+class BooleanField(Field):
+    def __init__(self, primary_key=False, default=0, updatable=True, ddl='bool'):
+        super(BooleanField, self).__init__(primary_key, default, updatable, ddl)
+        
+class FloatField(Field):
+    def __init__(self, primary_key=False, default=0.0, updatable=True, ddl='real'):
+        super(FloatField, self).__init__(primary_key, default, updatable, ddl)
+        
+class TextField(Field):
+    def __init__(self, primary_key=False, default='', updatable=True, ddl='mediumtext'):
+        super(TextField, self).__init__(primary_key, default, updatable, ddl)
 
         
 class ModelMetaclass(type):
@@ -48,6 +58,8 @@ class ModelMetaclass(type):
         mappings = dict()
         for k, v in attrs.iteritems():
             if isinstance(v, Field):
+                v.name = k
+                #print v , k, type(k)
                 if v.primary_key:
                     primary_key = v
                 mappings[k] = v
@@ -95,13 +107,29 @@ class Model(dict):
         
     def insert(self):
         params = {}
+        #print self.__mappings__
         for k, v in self.__mappings__.iteritems():
-            params[v.name] = getattr(self, k)
+            try:
+                params[v.name] = getattr(self, k)
+            except AttributeError:
+                if callable(v.default):
+                    if v.default==db.next_id:
+                        id = v.default(self.__table__)
+                        params[v.name] = id
+                        self[v.name] = id
+                    else:
+                        self[v.name] = params[v.name] = v.default()
+                else:
+                    params[v.name] = v.default
+                    self[v.name] = v.default
         db.insert(self.__table__, params)
         return self
+        
     def delete(self):
         pk = getattr(self, self.__primary_key__.name)
         old = self.get(str(pk))
+        print self
+        print old
         if self==old:
             db.delete(self.__table__, self.__primary_key__.name, pk)
         else:
