@@ -135,7 +135,8 @@ def select(sql, key):
     return data
     
 def select_one(sql, key):
-    return select(sql, key)[0]
+    data = select(sql, key)
+    return data[0] if data else None
 
 @with_connection
 def update(sql, key):

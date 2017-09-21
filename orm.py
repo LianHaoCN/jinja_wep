@@ -15,8 +15,8 @@ class User(Model):
 user = User(id=11, name='Michael')
 user.insert()                        #增加
 User.get('12')                       #按键值条件查询，获取第一条记录，返回实例
-User.find_first('name', 'Michael')   #条件查询，按键值排序后，返回第一条记录
-User.find_all('name', 'Michael')     #条件查询，按键值排序后，查所有记录
+User.find_first('where email="?"', 'test@example.com')   #条件查询，按键值排序后，返回第一条记录
+User.find_all('where email="?"', 'test@example.com')     #条件查询，按键值排序后，查所有记录
 User.find_by('name', 'Michael', 'id')#条件查询，按指定列排序后，查所有记录
 User.count_all()                     #单表记录总数
 User.count_by('name', 'Michael')     #条件查询到的记录数
@@ -56,17 +56,22 @@ class ModelMetaclass(type):
         if name == 'Model':
             return type.__new__(cls, name, bases, attrs)
         mappings = dict()
+        unupdatable = []
         for k, v in attrs.iteritems():
             if isinstance(v, Field):
                 v.name = k
-                #print v , k, type(k)
+                #print v.updatable, v.name, v
+                if v.updatable is False:
+                    unupdatable.append(v.name)
                 if v.primary_key:
                     primary_key = v
                 mappings[k] = v
+        #print unupdatable
         for k in mappings.iterkeys():
             attrs.pop(k)
         attrs['__mappings__'] = mappings
         attrs['__primary_key__'] = primary_key
+        attrs['__unupdatable__'] = unupdatable
         #print cls,'\n', name,'\n', bases,'\n', attrs,'\n'
         return type.__new__(cls, name, bases, attrs)
 
@@ -87,11 +92,11 @@ class Model(dict):
         return cls(**d) if d else None
     @classmethod
     def find_first(cls, col, pk):
-        d = db.select_one('select * from %s where %s="?" order by %s' % (cls.__table__, col, cls.__primary_key__.name), pk)
+        d = db.select_one('select * from %s %s order by %s' % (cls.__table__, col, cls.__primary_key__.name), pk)
         return cls(**d) if d else None
     @classmethod
     def find_all(cls, col, pk):
-        d = db.select('select * from %s where %s="?" order by %s' % (cls.__table__, col, cls.__primary_key__.name), pk)
+        d = db.select('select * from %s %s' % (cls.__table__, col), pk)
         return [cls(**instance) for instance in d] if d else None
     @classmethod
     def find_by(cls, col, pk, order_col):
@@ -107,33 +112,25 @@ class Model(dict):
         
     def insert(self):
         params = {}
-        #print self.__mappings__
         for k, v in self.__mappings__.iteritems():
+            #print k, v
             try:
                 params[v.name] = getattr(self, k)
             except AttributeError:
                 if callable(v.default):
                     if v.default==db.next_id:
-                        id = v.default(self.__table__)
-                        params[v.name] = id
-                        self[v.name] = id
+                        self[v.name] = params[v.name] = v.default(self.__table__)
                     else:
                         self[v.name] = params[v.name] = v.default()
                 else:
-                    params[v.name] = v.default
-                    self[v.name] = v.default
+                    self[v.name] = params[v.name] = v.default
         db.insert(self.__table__, params)
         return self
         
     def delete(self):
         pk = getattr(self, self.__primary_key__.name)
-        old = self.get(str(pk))
-        print self
-        print old
-        if self==old:
-            db.delete(self.__table__, self.__primary_key__.name, pk)
-        else:
-            print 'database record is not equal to the instance'
+        db.delete(self.__table__, self.__primary_key__.name, pk)
+
     def update(self):
         pk = getattr(self, self.__primary_key__.name)
         old = self.get(str(pk))
@@ -143,6 +140,9 @@ class Model(dict):
                 for k, v in self.__mappings__.iteritems():
                     if v.name<>self.__primary_key__.name:
                         params[v.name] = getattr(self, k)
+                for i in self.__unupdatable__:
+                    params.pop(i)
+                #print params
                 sql = 'update %s set %s where %s="?"' % (self.__table__, ','.join('%s="%s"' %(i,params[i]) for i in params), self.__primary_key__.name)
                 db.update(sql, str(pk))
             else:
