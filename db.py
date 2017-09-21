@@ -12,6 +12,7 @@ db.create_engine(user, password, database, host, port)
     db.delete('...')
     db.insert('...')
     db.select_one('...')
+    db.next_id('...')
 
 with db.connection():
     sql”Ôæ‰
@@ -93,6 +94,15 @@ def with_connection(func):
             return func(*args, **kw)
     return wrapper
 
+    
+@with_connection
+def next_id(tb):
+    global _db_ctx
+    sql = 'select max(id)+1 from %s' % tb
+    cursor = _db_ctx.cursor()
+    cursor.execute(sql)
+    data = cursor.fetchone()
+    return 1 if data.values()[0] is None else data.values()[0]
 
 @with_connection
 def insert(tb, params):
@@ -115,7 +125,6 @@ def delete(tb, pk, key):
     _db_ctx.connection.commit()
     print str(affectrows) + ' rows have been deleted'
     
-    
 @with_connection
 def select(sql, key):
     global _db_ctx
@@ -126,7 +135,8 @@ def select(sql, key):
     return data
     
 def select_one(sql, key):
-    return select(sql, key)[0]
+    data = select(sql, key)
+    return data[0] if data else None
 
 @with_connection
 def update(sql, key):
