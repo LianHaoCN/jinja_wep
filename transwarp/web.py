@@ -4,6 +4,8 @@
 '''
 '''
 
+import threading
+
 # 全局ThreadLocal对象：
 ctx = threading.local()
 
@@ -48,10 +50,10 @@ class Response(object):
     # 设置status:
     @property
     def status(self):
-        pass
+        return self._status
     @status.setter
     def status(self, value):
-        pass
+        self._status = value
 
 # 定义GET:
 def get(path):
@@ -82,7 +84,7 @@ class Jinja2TemplateEngine(TemplateEngine):
 
     def __call__(self, path, model):
         return self._env.get_template(path).render(**model).encode('utf-8')
-
+        
         
 class WSGIApplication(object):
     def __init__(self, document_root=None, **kw):
@@ -99,30 +101,26 @@ class WSGIApplication(object):
     # 设置TemplateEngine:
     @property
     def template_engine(self):
-        pass
+        return self._engine
 
     @template_engine.setter
     def template_engine(self, engine):
-        pass
+        self._engine = engine
 
     # 返回WSGI处理函数:
     def get_wsgi_application(self):
         def wsgi(env, start_response):
-            pass
+            self.template_engine = Jinja2TemplateEngine('../www/templates')
+            start_response('200 OK', [('Content-Type', 'text/html')])
+            return self.template_engine('home.html', {})#{'the':'variables', 'go':'here'})
         return wsgi
 
     # 开发模式下直接启动服务器:
-    def run(self, port=9000, host='127.0.0.1'):
+    def run(self, port=9000, host='0.0.0.0'):
         from wsgiref.simple_server import make_server
         server = make_server(host, port, self.get_wsgi_application())
         server.serve_forever()
         
-        
-wsgi = WSGIApplication()
-if __name__ == '__main__':
-    wsgi.run()
-else:
-    application = wsgi.get_wsgi_application()
 
 ## 首页:
 #@get('/')
@@ -160,3 +158,11 @@ else:
 ##错误处理
 #raise seeother('/signin')
 #raise notfound()
+
+
+wsgi = WSGIApplication()
+if __name__ == '__main__':
+    wsgi.run()
+else:
+    application = wsgi.get_wsgi_application()
+    
