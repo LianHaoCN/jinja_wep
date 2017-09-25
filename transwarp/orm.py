@@ -13,15 +13,15 @@ class User(Model):
     ...
 实例用法
 user = User(id=11, name='Michael')
-user.insert()                        #增加
-User.get('12')                       #按键值条件查询，获取第一条记录，返回实例
-User.find_first('where email="?"', 'test@example.com')   #条件查询，按键值排序后，返回第一条记录
-User.find_all('where email="?"', 'test@example.com')     #条件查询，按键值排序后，查所有记录
-User.find_by('name', 'Michael', 'id')#条件查询，按指定列排序后，查所有记录
-User.count_all()                     #单表记录总数
-User.count_by('name', 'Michael')     #条件查询到的记录数
-user.update()                        #改
-user.delete()                        #删
+user.insert()                                           #增加
+User.get('12')                                          #按键值条件查询，获取第一条记录，返回实例
+User.find_first('where email="?"', 'test@example.com')  #条件查询，按键值排序后，返回第一条记录
+User.find_all()                                         #按键值排序后，查所有记录
+User.find_by('name', 'Michael', 'id')                   #条件查询，按指定列排序后，查所有记录
+User.count_all()                                        #单表记录总数
+User.count_by('name', 'Michael')                        #条件查询到的记录数
+user.update()                                           #改
+user.delete()                                           #删
 '''
 
 import db, time
@@ -95,8 +95,8 @@ class Model(dict):
         d = db.select_one('select * from %s %s order by %s' % (cls.__table__, col, cls.__primary_key__.name), pk)
         return cls(**d) if d else None
     @classmethod
-    def find_all(cls, col, pk):
-        d = db.select('select * from %s %s' % (cls.__table__, col), pk)
+    def find_all(cls):
+        d = db.select('select * from %s order by "?"' % cls.__table__, cls.__primary_key__.name)
         return [cls(**instance) for instance in d] if d else None
     @classmethod
     def find_by(cls, col, pk, order_col):

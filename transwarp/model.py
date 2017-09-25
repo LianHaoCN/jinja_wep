@@ -13,7 +13,7 @@ c = Comment(...)
 insert()                                            #增加
 get('12')                                           #按键值条件查询，获取第一条记录，返回实例
 find_first('where email="?"', 'test@example.com')   #条件查询，按键值排序后，返回第一条记录
-find_all('where email="?"', 'test@example.com')     #条件查询，按键值排序后，查所有记录
+find_all()                                          #按键值排序后，查所有记录
 find_by('name', 'Michael', 'id')                    #条件查询，按指定列排序后，查所有记录
 count_all()                                         #单表记录总数
 count_by('name', 'Michael')                         #条件查询到的记录数

@@ -4,7 +4,7 @@
 '''
 '''
 
-import threading
+import threading, functools
 
 # 全局ThreadLocal对象：
 ctx = threading.local()
@@ -57,19 +57,40 @@ class Response(object):
 
 # 定义GET:
 def get(path):
-    pass
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kw):
+            return func(*args, **kw)
+        return wrapper
+    return decorator
+    
 
 # 定义POST:
 def post(path):
-    pass
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kw):
+            return func(*args, **kw)
+        return wrapper
+    return decorator
 
 # 定义模板:
 def view(path):
-    pass
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kw):
+            return func(*args, **kw)
+        return wrapper
+    return decorator
 
 # 定义拦截器:
 def interceptor(pattern):
-    pass
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kw):
+            return func(*args, **kw)
+        return wrapper
+    return decorator
 
 # 定义模板引擎:
 class TemplateEngine(object):
@@ -88,10 +109,15 @@ class Jinja2TemplateEngine(TemplateEngine):
         
 class WSGIApplication(object):
     def __init__(self, document_root=None, **kw):
-        pass
+        self.document_root = document_root
+        self.params = kw
 
     # 添加一个URL定义:
     def add_url(self, func):
+        pass
+        
+    # 添加module定义
+    def add_module(self, urls):
         pass
 
     # 添加一个Interceptor定义:
@@ -110,9 +136,10 @@ class WSGIApplication(object):
     # 返回WSGI处理函数:
     def get_wsgi_application(self):
         def wsgi(env, start_response):
-            self.template_engine = Jinja2TemplateEngine('../www/templates')
+            #self.template_engine = Jinja2TemplateEngine('../www/templates')
+            #self.add_module(urls)
             start_response('200 OK', [('Content-Type', 'text/html')])
-            return self.template_engine('home.html', {})#{'the':'variables', 'go':'here'})
+            #return self.template_engine('home.html', {})#{'the':'variables', 'go':'here'})
         return wsgi
 
     # 开发模式下直接启动服务器:
@@ -158,6 +185,12 @@ class WSGIApplication(object):
 ##错误处理
 #raise seeother('/signin')
 #raise notfound()
+#
+#@view('test_users.html')
+#@get('/')
+#def test_users():
+#    users = User.find_all()
+#    return dict(users=users)
 
 
 wsgi = WSGIApplication()
